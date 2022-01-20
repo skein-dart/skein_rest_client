@@ -2,6 +2,8 @@
 // in skein_rest_client/test/skein_rest_client_test.dart.
 // Do not manually edit this file.
 
+import 'dart:async' as _i4;
+
 import 'package:async/async.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:skein_rest_client/skein_rest_client.dart' as _i2;
@@ -35,7 +37,7 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
       (super.noSuchMethod(Invocation.getter(#uri), returnValue: _FakeUri_0())
           as Uri);
   @override
-  set uri(Uri? _uri) => super.noSuchMethod(Invocation.setter(#uri, _uri),
+  void init(Uri? uri) => super.noSuchMethod(Invocation.method(#init, [uri]),
       returnValueForMissingStub: null);
   @override
   _i2.RestClient decode({_i2.DecoderFunction<dynamic>? withDecoder}) => (super
@@ -55,8 +57,9 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
       (super.noSuchMethod(Invocation.method(#authorization, [authorization]),
           returnValue: _FakeRestClient_1()) as _i2.RestClient);
   @override
-  void init(Uri? uri) => super.noSuchMethod(Invocation.method(#init, [uri]),
-      returnValueForMissingStub: null);
+  _i2.RestClient stub<T>(_i4.FutureOr<T>? stub) =>
+      (super.noSuchMethod(Invocation.method(#stub, [stub]),
+          returnValue: _FakeRestClient_1()) as _i2.RestClient);
   @override
   _i3.CancelableOperation<T> post<T>([dynamic data]) =>
       (super.noSuchMethod(Invocation.method(#post, [data]),
@@ -75,6 +78,26 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
   @override
   _i3.CancelableOperation<T> delete<T>([dynamic data]) =>
       (super.noSuchMethod(Invocation.method(#delete, [data]),
+              returnValue: _FakeCancelableOperation_2<T>())
+          as _i3.CancelableOperation<T>);
+  @override
+  _i3.CancelableOperation<T> doPost<T>([dynamic data]) =>
+      (super.noSuchMethod(Invocation.method(#doPost, [data]),
+              returnValue: _FakeCancelableOperation_2<T>())
+          as _i3.CancelableOperation<T>);
+  @override
+  _i3.CancelableOperation<T> doPatch<T>([dynamic data]) =>
+      (super.noSuchMethod(Invocation.method(#doPatch, [data]),
+              returnValue: _FakeCancelableOperation_2<T>())
+          as _i3.CancelableOperation<T>);
+  @override
+  _i3.CancelableOperation<T> doGet<T>() =>
+      (super.noSuchMethod(Invocation.method(#doGet, []),
+              returnValue: _FakeCancelableOperation_2<T>())
+          as _i3.CancelableOperation<T>);
+  @override
+  _i3.CancelableOperation<T> doDelete<T>([dynamic data]) =>
+      (super.noSuchMethod(Invocation.method(#doDelete, [data]),
               returnValue: _FakeCancelableOperation_2<T>())
           as _i3.CancelableOperation<T>);
 }

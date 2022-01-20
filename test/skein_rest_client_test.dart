@@ -1,3 +1,4 @@
+import 'package:async/async.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:skein_rest_client/skein_rest_client.dart';
@@ -10,14 +11,17 @@ import 'skein_rest_client_test.mocks.dart';
 void main() {
 
   final api = "https://example.com/api";
-  final client = MockRestClient();
-
-  Rest.config = Config(
-    rest: RestConfig(builder: () => client, api: api),
-    auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
-  );
 
   group("rest() function", () {
+    final client = MockRestClient();
+
+    setUpAll(() {
+      Rest.config = Config(
+        rest: RestConfig(builder: () => client, api: api),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+    });
+
     tearDown(() {
       reset(client);
     });
@@ -50,6 +54,13 @@ void main() {
   });
 
   group("Config", () {
+    final client = MockRestClient();
+    setUpAll(() {
+      Rest.config = Config(
+        rest: RestConfig(builder: () => client, api: api),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+    });
 
     test("RestConfig correctly configured", () {
       expect(Rest.config.rest.builder(), equals(client));
@@ -63,5 +74,72 @@ void main() {
     });
 
   });
+
+  group("RestClient", () {
+    final realData = {"username": "real_user", "password": "real_pass"};
+    final fakeData = {"username": "fake_user", "password": "fake_pass"};
+    var client = TestRestClient(realData);
+
+    setUpAll(() {
+      Rest.config = Config(
+        rest: RestConfig(builder: () => client, api: api),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+    });
+
+
+    tearDown(() {
+
+    });
+
+    test("stub().post()", () async {
+      expect(await rest(path: "/test-endpoint").post().value, realData);
+      expect(await rest(path: "/test-endpoint").stub(fakeData).post().value, fakeData);
+    });
+
+    test("stub().get()", () async {
+      expect(await rest(path: "/test-endpoint").get().value, realData);
+      expect(await rest(path: "/test-endpoint").stub(fakeData).get().value, fakeData);
+    });
+
+    test("stub().patch()", () async {
+      expect(await rest(path: "/test-endpoint").patch().value, realData);
+      expect(await rest(path: "/test-endpoint").stub(fakeData).patch().value, fakeData);
+    });
+
+    test("stub().delete()", () async {
+      expect(await rest(path: "/test-endpoint").delete().value, realData);
+      expect(await rest(path: "/test-endpoint").stub(fakeData).delete().value, fakeData);
+    });
+
+  });
+
+}
+
+class TestRestClient extends RestClient with RestClientHelper {
+
+  final dynamic returnValue;
+
+  TestRestClient(this.returnValue);
+
+  @override
+  CancelableOperation<T> doDelete<T>([data]) {
+    return CancelableOperation.fromFuture(Future.value(returnValue));
+  }
+
+  @override
+  CancelableOperation<T> doGet<T>([data]) {
+    return CancelableOperation.fromFuture(Future.value(returnValue));
+  }
+
+  @override
+  CancelableOperation<T> doPatch<T>([data]) {
+    return CancelableOperation.fromFuture(Future.value(returnValue));
+  }
+
+  @override
+  CancelableOperation<T> doPost<T>([data]) {
+    return CancelableOperation.fromFuture(Future.value(returnValue));
+  }
 
 }

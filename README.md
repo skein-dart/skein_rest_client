@@ -16,8 +16,11 @@ with an implementation layer.
 
 ```dart
 Rest.config = Config(
-    rest: RestConfig(builder: () => RestDioClient(dio), api: "https://example.com/api"),
-    auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+  rest: RestConfig(
+    builder: () => RestClientImplementation(), 
+    api: "https://example.com/api"
+  ),
+  auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
 );
 ```
 

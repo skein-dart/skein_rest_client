@@ -1,7 +1,9 @@
 import 'package:skein_rest_client/skein_rest_client.dart';
 
+import 'rest_client.dart';
+
 RestClient rest({Uri? uri, String? url, String? path}) {
-  final client = Rest.config.rest.builder();
+  final client = RestClientRegistry.get();
   client.init(_uriFrom(uri: uri, url: url, path: path));
   return client;
 }
