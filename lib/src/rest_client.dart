@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:skein_rest_client/skein_rest_client.dart';
 
 part 'rest_client_registry.dart';
@@ -10,11 +12,25 @@ typedef EncoderFunction<T> = FutureOr<dynamic> Function(T value);
 typedef AuthorizationBuilder = FutureOr<Authorization?> Function();
 
 abstract class RestClient {
+  static late final _log = Logger("rest_client");
+
+  static int _lineNumber = 0;
+  static String get _nextLineName {
+    _lineNumber++;
+    if (_lineNumber > 9999) {
+      _lineNumber = 0;
+    }
+    return "$_lineNumber".padLeft(4, "0");
+  }
+
+  late final String name = _nextLineName;
 
   Uri? _uri;
   Uri get uri => _uri!;
 
-  void init(Uri uri) => _uri = uri;
+  void init(Uri uri) {
+    _uri = uri;
+  }
 
   // MARK: Decoder
 
@@ -65,10 +81,25 @@ abstract class RestClient {
 
   // MARK: HTTP methods to implement
 
+  @protected
   CancelableOperation<T> doPost<T>([dynamic data]);
+
+  @protected
   CancelableOperation<T> doPatch<T>([dynamic data]);
+
+  @protected
   CancelableOperation<T> doGet<T>();
+
+  @protected
   CancelableOperation<T> doDelete<T>([dynamic data]);
+
+  @protected
+  CancelableOperation<T> doStub<T>(FutureOr stub, {required String method}) {
+    _log.info("$name *STUB* ${method.toUpperCase()} ${uri.toString()} $stub");
+    return CancelableOperation.fromFuture(Future(() async {
+      return _decoder != null ? _decoder!(await _stub) : await _stub;
+    }));
+  }
 
 }
 
@@ -103,36 +134,30 @@ mixin RestClientHelper on RestClient {
 
   @override
   CancelableOperation<T> post<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? _wrap(stub: _stub) : doPost(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "POST") : doPost(data);
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
   @override
   CancelableOperation<T> patch<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? _wrap(stub: _stub) : doPatch(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "PATCH") : doPatch(data);
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
   @override
   CancelableOperation<T> get<T>() {
-    final CancelableOperation<T> operation = _stub != null ? _wrap(stub: _stub) : doGet();
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "GET") : doGet();
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
   @override
   CancelableOperation<T> delete<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? _wrap(stub: _stub) : doDelete(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "DELETE") : doDelete(data);
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
-  }
-
-  CancelableOperation<T> _wrap<T>({required FutureOr stub}) {
-    return CancelableOperation.fromFuture(Future(() async {
-      return _decoder != null ? _decoder!(await _stub) : await _stub;
-    }));
   }
 
 }

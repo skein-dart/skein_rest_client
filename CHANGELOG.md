@@ -1,3 +1,7 @@
+## 0.0.3
+
+* Adds logging
+
 ## 0.0.2
 
 * Adds support for stubbing responses via `stub()` function
