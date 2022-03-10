@@ -10,6 +10,7 @@ part 'rest_client_registry.dart';
 typedef DecoderFunction<T> = FutureOr<T> Function(dynamic value);
 typedef EncoderFunction<T> = FutureOr<dynamic> Function(T value);
 typedef AuthorizationBuilder = FutureOr<Authorization?> Function();
+typedef ExceptionHandler<T> = T Function(Exception e, StackTrace stackTrace);
 
 abstract class RestClient {
   static late final _log = Logger("rest_client");
@@ -61,6 +62,14 @@ abstract class RestClient {
   AuthorizationBuilder? _authorization;
   RestClient authorization(AuthorizationBuilder? authorization) {
     _authorization = authorization;
+    return this;
+  }
+
+  // MARK: Error handling
+
+  ExceptionHandler? _exceptionHandler;
+  RestClient onError(ExceptionHandler? exceptionHandler) {
+    _exceptionHandler = exceptionHandler;
     return this;
   }
 
@@ -130,6 +139,13 @@ mixin RestClientHelper on RestClient {
 
   FutureOr<T> decodeIfNeeded<T>(dynamic value) {
     return _decoder != null ? _decoder!(value) : value;
+  }
+
+  T handleException<T>(Exception error, StackTrace stackTrace) {
+    if (_exceptionHandler == null) {
+      throw error;
+    }
+    return _exceptionHandler!(error, stackTrace);
   }
 
   @override
