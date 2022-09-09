@@ -13,7 +13,7 @@ typedef AuthorizationBuilder = FutureOr<Authorization?> Function();
 typedef ExceptionHandler<T> = T Function(Exception e, StackTrace stackTrace);
 
 abstract class RestClient {
-  static late final _log = Logger("rest_client");
+  static final _log = Logger("rest_client");
 
   static int _lineNumber = 0;
   static String get _nextLineName {
@@ -123,7 +123,7 @@ mixin RestClientHelper on RestClient {
   }
 
   Future<Map<String, dynamic>?> formHeaders() async {
-    final headers = <String, dynamic> {};
+    final headers = {..._headers};
 
     final authorization = await formAuthorization();
     if (authorization != null) {

@@ -33,6 +33,9 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
   }
 
   @override
+  String get name =>
+      (super.noSuchMethod(Invocation.getter(#name), returnValue: '') as String);
+  @override
   Uri get uri =>
       (super.noSuchMethod(Invocation.getter(#uri), returnValue: _FakeUri_0())
           as Uri);
@@ -55,6 +58,10 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
   @override
   _i2.RestClient authorization(_i2.AuthorizationBuilder? authorization) =>
       (super.noSuchMethod(Invocation.method(#authorization, [authorization]),
+          returnValue: _FakeRestClient_1()) as _i2.RestClient);
+  @override
+  _i2.RestClient onError(_i2.ExceptionHandler<dynamic>? exceptionHandler) =>
+      (super.noSuchMethod(Invocation.method(#onError, [exceptionHandler]),
           returnValue: _FakeRestClient_1()) as _i2.RestClient);
   @override
   _i2.RestClient stub<T>(_i4.FutureOr<T>? stub) =>
@@ -98,6 +105,12 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
   @override
   _i3.CancelableOperation<T> doDelete<T>([dynamic data]) =>
       (super.noSuchMethod(Invocation.method(#doDelete, [data]),
+              returnValue: _FakeCancelableOperation_2<T>())
+          as _i3.CancelableOperation<T>);
+  @override
+  _i3.CancelableOperation<T> doStub<T>(_i4.FutureOr<dynamic>? stub,
+          {String? method}) =>
+      (super.noSuchMethod(Invocation.method(#doStub, [stub], {#method: method}),
               returnValue: _FakeCancelableOperation_2<T>())
           as _i3.CancelableOperation<T>);
 }

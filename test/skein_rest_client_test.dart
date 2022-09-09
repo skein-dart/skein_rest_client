@@ -15,7 +15,7 @@ void main() {
   group("rest() function", () {
     final client = MockRestClient();
 
-    setUpAll(() {
+    setUp(() {
       Rest.config = Config(
         rest: RestConfig(builder: () => client, api: api),
         auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
@@ -26,17 +26,17 @@ void main() {
       reset(client);
     });
 
-    test("Passes correct URI based on the path argument", () {
+    test("Parse URI based on the path argument", () {
       rest(path: "/test-endpoint");
       verify(client.init(argThat(equals(Uri.parse("$api/test-endpoint"))))).called(1);
     });
 
-    test("Passes correct URL based on the url argument", () {
+    test("Parse URI based on the url argument", () {
       rest(url: "https://url-api.com/api/test-endpoint");
       verify(client.init(argThat(equals(Uri.parse("https://url-api.com/api/test-endpoint"))))).called(1);
     });
 
-    test("Passes correct URI based on the url argument", () {
+    test("Parse URI based on the uri argument", () {
       rest(uri: Uri.parse("https://uri-api.com/api/test-endpoint"));
       verify(client.init(argThat(equals(Uri.parse("https://uri-api.com/api/test-endpoint"))))).called(1);
     });
@@ -49,6 +49,15 @@ void main() {
         argumentError = error;
       }
       expect(argumentError, isNotNull);
+    });
+
+    test("Parse URI based on the path argument including base part for API", () {
+      Rest.config = Config(
+        rest: RestConfig(builder: () => client),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+      rest(path: "https://path-api.com/api/test-endpoint");
+      verify(client.init(argThat(equals(Uri.parse("https://path-api.com/api/test-endpoint"))))).called(1);
     });
 
   });
@@ -76,9 +85,72 @@ void main() {
   });
 
   group("RestClient", () {
+    final client = _MockRestClient();
+
+    setUp(() {
+      Rest.config = Config(
+        rest: RestConfig(builder: () => client, api: api),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+    });
+
+    tearDown(() {
+      reset(client);
+    });
+
+
+    test("Set decoder", () {
+      final client = _RealRestClient("");
+      final decoder = _MockDecoder();
+      client.decode(withDecoder: decoder);
+      client.decodeIfNeeded("test");
+      verify(decoder("test")).called(1);
+    });
+
+    test("Set encoder", () {
+      final client = _RealRestClient("");
+      final encoder = _MockEncoder();
+      client.encode(withEncoder: encoder);
+      client.encodeIfNeeded("test");
+      verify(encoder("test")).called(1);
+    });
+
+    test("Add header", () async {
+      final client = _RealRestClient("");
+      client.addHeader(name: "test_header", value: "test_header_value");
+      final headers = await client.formHeaders();
+      expect(headers, containsPair("test_header", "test_header_value"));
+    });
+
+    test("Set Authorization header", () async {
+      final client = _RealRestClient("");
+      client.authorization(() => BearerAuthorization(token: "custom_test_token"));
+      final authorization = await client.formAuthorization();
+      expect(authorization?.data, "Bearer custom_test_token");
+    });
+
+    test("Set exception handler", () {
+      final client = _RealRestClient("");
+      final handler = _MockExceptionHandler();
+      client.onError(handler);
+      final exception = Exception("test_exception");
+      final stackTrace = StackTrace.empty;
+      client.handleException(exception, stackTrace);
+      verify(handler(exception, stackTrace)).called(1);
+    });
+
+    test("Rethrow exception if no handler specified", () {
+      final client = _RealRestClient("");
+      final exception = Exception("test_exception");
+      final stackTrace = StackTrace.empty;
+      expect(() => client.handleException(exception, stackTrace), throwsA(exception));
+    });
+  });
+
+  group("RestClient HTTP stubbing", () {
     final realData = {"username": "real_user", "password": "real_pass"};
     final fakeData = {"username": "fake_user", "password": "fake_pass"};
-    var client = TestRestClient(realData);
+    var client = _RealRestClient(realData);
 
     setUpAll(() {
       Rest.config = Config(
@@ -116,11 +188,28 @@ void main() {
 
 }
 
-class TestRestClient extends RestClient with RestClientHelper {
+abstract class _Decoder<T> {
+  T call(dynamic value);
+}
+class _MockDecoder<T> extends Mock implements _Decoder<T> {}
+
+abstract class _Encoder<T> {
+  dynamic call(T value);
+}
+class _MockEncoder<T> extends Mock implements _Encoder<T> {}
+
+abstract class _ExceptionHandler<T> {
+  T call(Exception error, StackTrace stack);
+}
+class _MockExceptionHandler<T> extends Mock implements _ExceptionHandler<T> {}
+
+class _MockRestClient extends MockRestClient with RestClientHelper {}
+
+class _RealRestClient extends RestClient with RestClientHelper {
 
   final dynamic returnValue;
 
-  TestRestClient(this.returnValue);
+  _RealRestClient([this.returnValue]);
 
   @override
   CancelableOperation<T> doDelete<T>([data]) {
