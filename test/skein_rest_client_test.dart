@@ -7,7 +7,7 @@ import 'package:test/scaffolding.dart';
 
 import 'skein_rest_client_test.mocks.dart';
 
-@GenerateMocks([RestClient])
+@GenerateMocks([RestClient, CancelableOperation])
 void main() {
 
   final api = "https://example.com/api";
@@ -98,9 +98,8 @@ void main() {
       reset(client);
     });
 
-
     test("Set decoder", () {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       final decoder = _MockDecoder();
       client.decode(withDecoder: decoder);
       client.decodeIfNeeded("test");
@@ -108,7 +107,7 @@ void main() {
     });
 
     test("Set encoder", () {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       final encoder = _MockEncoder();
       client.encode(withEncoder: encoder);
       client.encodeIfNeeded("test");
@@ -116,21 +115,21 @@ void main() {
     });
 
     test("Add header", () async {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       client.addHeader(name: "test_header", value: "test_header_value");
       final headers = await client.formHeaders();
       expect(headers, containsPair("test_header", "test_header_value"));
     });
 
     test("Set Authorization header", () async {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       client.authorization(() => BearerAuthorization(token: "custom_test_token"));
       final authorization = await client.formAuthorization();
       expect(authorization?.data, "Bearer custom_test_token");
     });
 
     test("Set exception handler", () {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       final handler = _MockExceptionHandler();
       client.onError(handler);
       final exception = Exception("test_exception");
@@ -140,7 +139,7 @@ void main() {
     });
 
     test("Rethrow exception if no handler specified", () {
-      final client = _RealRestClient("");
+      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
       final exception = Exception("test_exception");
       final stackTrace = StackTrace.empty;
       expect(() => client.handleException(exception, stackTrace), throwsA(exception));
@@ -150,7 +149,8 @@ void main() {
   group("RestClient HTTP stubbing", () {
     final realData = {"username": "real_user", "password": "real_pass"};
     final fakeData = {"username": "fake_user", "password": "fake_pass"};
-    var client = _RealRestClient(realData);
+    final real = CancelableOperation.fromFuture(Future.value(realData));
+    var client = _StubRestClient(real);
 
     setUpAll(() {
       Rest.config = Config(
@@ -186,6 +186,27 @@ void main() {
 
   });
 
+  group("RestClient HTTP call cancellation", () {
+    final client = _MockRestClient();
+
+    setUp(() {
+      Rest.config = Config(
+          rest: RestConfig(builder: () => client, api: api),
+          auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+      );
+    });
+
+    tearDown(() {
+      reset(client);
+    });
+
+    test("Cancel get()", () {
+      final operation = MockCancelableOperation();
+      final client = _StubRestClient(operation);
+      // when(client.doGet()).thenReturn(expected)
+    });
+  });
+
 }
 
 abstract class _Decoder<T> {
@@ -205,30 +226,30 @@ class _MockExceptionHandler<T> extends Mock implements _ExceptionHandler<T> {}
 
 class _MockRestClient extends MockRestClient with RestClientHelper {}
 
-class _RealRestClient extends RestClient with RestClientHelper {
+class _StubRestClient extends RestClient with RestClientHelper {
 
-  final dynamic returnValue;
+  final CancelableOperation operation;
 
-  _RealRestClient([this.returnValue]);
+  _StubRestClient(this.operation);
 
   @override
   CancelableOperation<T> doDelete<T>([data]) {
-    return CancelableOperation.fromFuture(Future.value(returnValue));
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doGet<T>([data]) {
-    return CancelableOperation.fromFuture(Future.value(returnValue));
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doPatch<T>([data]) {
-    return CancelableOperation.fromFuture(Future.value(returnValue));
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doPost<T>([data]) {
-    return CancelableOperation.fromFuture(Future.value(returnValue));
+    return operation as CancelableOperation<T>;
   }
 
 }

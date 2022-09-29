@@ -11,6 +11,7 @@ typedef DecoderFunction<T> = FutureOr<T> Function(dynamic value);
 typedef EncoderFunction<T> = FutureOr<dynamic> Function(T value);
 typedef AuthorizationBuilder = FutureOr<Authorization?> Function();
 typedef ExceptionHandler<T> = T Function(Exception e, StackTrace stackTrace);
+typedef ExceptionInterceptor = Future<bool> Function(Object error, StackTrace stack, {required int attempts});
 
 abstract class RestClient {
   static final _log = Logger("rest_client");
@@ -68,8 +69,16 @@ abstract class RestClient {
   // MARK: Error handling
 
   ExceptionHandler? _exceptionHandler;
-  RestClient onError(ExceptionHandler? exceptionHandler) {
-    _exceptionHandler = exceptionHandler;
+  RestClient onError(ExceptionHandler? handler) {
+    _exceptionHandler = handler;
+    return this;
+  }
+
+  // MARK: Exception interceptor
+
+  ExceptionInterceptor? _exceptionInterceptor;
+  RestClient errorInterceptor(ExceptionInterceptor? interceptor) {
+    _exceptionInterceptor = interceptor;
     return this;
   }
 
@@ -150,35 +159,122 @@ mixin RestClientHelper on RestClient {
 
   @override
   CancelableOperation<T> post<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "POST") : doPost(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "POST") : _request(() => doPost(data));
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
   @override
   CancelableOperation<T> patch<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "PATCH") : doPatch(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "PATCH") : _request(() => doPatch(data));
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
   @override
   CancelableOperation<T> get<T>() {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "GET") : doGet();
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "GET") : _request(() => doGet());
     operation.onEnd(() => RestClientRegistry.reuse(this));
+
+    if (_exceptionInterceptor == null) {
+      return operation;
+    }
+
+    operation.then((value) => value, onError: (error, stackTrace) {
+
+    });
+
+
     return operation;
   }
 
   @override
   CancelableOperation<T> delete<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "DELETE") : doDelete(data);
+    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "DELETE") : _request(() => doDelete(data));
     operation.onEnd(() => RestClientRegistry.reuse(this));
     return operation;
   }
 
+  CancelableOperation<T> _request<T>(CancelableOperation<T> Function() generator) {
+    final interceptor = _exceptionInterceptor ?? Rest.config.rest.errorInterceptor;
+    if (interceptor == null) {
+      return generator();
+    }
+
+    // based on https://github.com/dart-lang/async/issues/210
+    // TODO: refactor to thenOperation() when available
+
+    late CancelableOperation<T> operation;
+
+    final completer = CancelableCompleter<T>(
+        onCancel: () {
+          operation.cancel();
+        }
+    );
+
+    _retry(() => operation = generator(), completer, interceptor);
+
+    return completer.operation;
+  }
+
+  _retry<T>(
+    CancelableOperation<T> Function() generator,
+    CancelableCompleter<T> completer,
+    ExceptionInterceptor shouldRetry) async
+  {
+    var attempts = 0;
+    for(;;) {
+      final current = generator();
+      try {
+        var result = await current.valueOrCancellation();
+        if (completer.isCanceled) {
+          return;
+        }
+        if (current.isCompleted && !current.isCanceled) {
+          completer.complete(result);
+        } else {
+          completer.operation.cancel();
+        }
+        return;
+      } on Object catch (error, stack) {
+        if (await shouldRetry(error, stack, attempts: attempts)) {
+          attempts++;
+          continue;
+        }
+        if (completer.isCanceled) {
+          return;
+        }
+        completer.completeError(error, stack);
+      }
+
+    }
+
+  }
+
+
+  // CancelableOperation<T> _delete<T>([dynamic data]) {
+  //   late CancelableOperation<T> operation;
+  //   return doDelete(data).then((value) => value,
+  //       onError: (error, stack) {
+  //         operation = _delete(data);
+  //         return operation.value;
+  //       },
+  //       onCancel: () {
+  //         operation.cancel()
+  //       });
+  // }
+
 }
 
 extension on CancelableOperation {
+
+  // CancelableOperation<R> retry<R>(Object? error, StackTrace? stack, CancelableOperation<R> Function() generator) {
+  //
+  //   final completer = CancelableCompleter(onCancel: () {
+  //
+  //   })
+  //
+  // }
 
   CancelableOperation<R> onEnd<R>(FutureOr<R> Function() listener) {
     return then((_) => listener(),
@@ -188,3 +284,4 @@ extension on CancelableOperation {
   }
 
 }
+

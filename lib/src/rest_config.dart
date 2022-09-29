@@ -21,9 +21,12 @@ class RestConfig {
 
   final String? api;
 
+  final ExceptionInterceptor? errorInterceptor;
+
   const RestConfig({
     required this.builder,
-    this.api
+    this.api,
+    this.errorInterceptor,
   });
 
 }

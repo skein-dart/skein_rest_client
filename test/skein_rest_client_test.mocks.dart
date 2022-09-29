@@ -114,3 +114,53 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
               returnValue: _FakeCancelableOperation_2<T>())
           as _i3.CancelableOperation<T>);
 }
+
+/// A class which mocks [CancelableOperation].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCancelableOperation<T> extends _i1.Mock
+    implements _i3.CancelableOperation<T> {
+  MockCancelableOperation() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<T> get value => (super.noSuchMethod(Invocation.getter(#value),
+      returnValue: Future<T>.value(null)) as _i4.Future<T>);
+  @override
+  bool get isCanceled =>
+      (super.noSuchMethod(Invocation.getter(#isCanceled), returnValue: false)
+          as bool);
+  @override
+  bool get isCompleted =>
+      (super.noSuchMethod(Invocation.getter(#isCompleted), returnValue: false)
+          as bool);
+  @override
+  _i4.Stream<T> asStream() =>
+      (super.noSuchMethod(Invocation.method(#asStream, []),
+          returnValue: Stream<T>.empty()) as _i4.Stream<T>);
+  @override
+  _i4.Future<T?> valueOrCancellation([T? cancellationValue]) =>
+      (super.noSuchMethod(
+          Invocation.method(#valueOrCancellation, [cancellationValue]),
+          returnValue: Future<T?>.value()) as _i4.Future<T?>);
+  @override
+  _i3.CancelableOperation<R> then<R>(_i4.FutureOr<R>? Function(T)? onValue,
+          {_i4.FutureOr<R>? Function(Object, StackTrace)? onError,
+          _i4.FutureOr<R>? Function()? onCancel,
+          bool? propagateCancel = true}) =>
+      (super.noSuchMethod(
+              Invocation.method(#then, [
+                onValue
+              ], {
+                #onError: onError,
+                #onCancel: onCancel,
+                #propagateCancel: propagateCancel
+              }),
+              returnValue: _FakeCancelableOperation_2<R>())
+          as _i3.CancelableOperation<R>);
+  @override
+  _i4.Future<dynamic> cancel() =>
+      (super.noSuchMethod(Invocation.method(#cancel, []),
+          returnValue: Future<dynamic>.value()) as _i4.Future<dynamic>);
+}
