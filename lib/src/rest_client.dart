@@ -82,6 +82,9 @@ abstract class RestClient {
     return this;
   }
 
+  @protected
+  ExceptionInterceptor? getErrorInterceptor() => _exceptionInterceptor ?? Rest.config.rest.errorInterceptor;
+
   // MARK: Stub
 
   FutureOr? _stub;
@@ -175,16 +178,6 @@ mixin RestClientHelper on RestClient {
   CancelableOperation<T> get<T>() {
     final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "GET") : _request(() => doGet());
     operation.onEnd(() => RestClientRegistry.reuse(this));
-
-    if (_exceptionInterceptor == null) {
-      return operation;
-    }
-
-    operation.then((value) => value, onError: (error, stackTrace) {
-
-    });
-
-
     return operation;
   }
 
@@ -196,7 +189,7 @@ mixin RestClientHelper on RestClient {
   }
 
   CancelableOperation<T> _request<T>(CancelableOperation<T> Function() generator) {
-    final interceptor = _exceptionInterceptor ?? Rest.config.rest.errorInterceptor;
+    final interceptor = getErrorInterceptor();
     if (interceptor == null) {
       return generator();
     }

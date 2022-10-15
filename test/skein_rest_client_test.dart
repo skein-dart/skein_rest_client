@@ -191,8 +191,8 @@ void main() {
 
     setUp(() {
       Rest.config = Config(
-          rest: RestConfig(builder: () => client, api: api),
-          auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
+        rest: RestConfig(builder: () => client, api: api),
+        auth: AuthConfig(builder: () => BearerAuthorization(token: "test_token"))
       );
     });
 
@@ -209,13 +209,13 @@ void main() {
   
   group("RestClient retry failed HTTP calls", () {
     var isTokenExpired = true;
-    final client = _StubRestClient(() => isTokenExpired
-      ? throw _TokenExpiredException()
-      : CancelableOperation.fromFuture(Future.value("OK"))
-    );
+    late _StubRestClient client;
 
     setUp(() {
-
+      client = _StubRestClient(() => isTokenExpired
+        ? throw _TokenExpiredException()
+        : CancelableOperation.fromFuture(Future.value("OK"))
+      );
     });
 
     tearDown(() {
@@ -247,6 +247,21 @@ void main() {
         return attempts < 5;
       });
       expect(() async => await client.get().value, throwsA(isA<_TokenExpiredException>()));
+    });
+
+    test("RestConfig.errorInterceptor()", () async {
+      Rest.config = Config(
+        rest: RestConfig(
+          builder: () => client,
+          api: api,
+          errorInterceptor: (error, stack, {required attempts}) async {
+            await Future.delayed(Duration(milliseconds: 500));
+            isTokenExpired = false;
+            return true;
+          },
+        ),
+      );
+      expect(await client.get().value, equals("OK"));
     });
 
   });

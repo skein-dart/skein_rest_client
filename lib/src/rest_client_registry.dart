@@ -24,6 +24,8 @@ class RestClientRegistry {
     client._decoder = null;
     client._headers.clear();
     client._authorization = null;
+    client._exceptionHandler = null;
+    client._exceptionInterceptor = null;
     client._stub = null;
     _registry.add(client);
   }
