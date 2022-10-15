@@ -224,8 +224,8 @@ mixin RestClientHelper on RestClient {
   {
     var attempts = 0;
     for(;;) {
-      final current = generator();
       try {
+        final current = generator();
         var result = await current.valueOrCancellation();
         if (completer.isCanceled) {
           return;
@@ -245,6 +245,7 @@ mixin RestClientHelper on RestClient {
           return;
         }
         completer.completeError(error, stack);
+        return;
       }
 
     }

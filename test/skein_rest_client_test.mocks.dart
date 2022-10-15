@@ -60,8 +60,12 @@ class MockRestClient extends _i1.Mock implements _i2.RestClient {
       (super.noSuchMethod(Invocation.method(#authorization, [authorization]),
           returnValue: _FakeRestClient_1()) as _i2.RestClient);
   @override
-  _i2.RestClient onError(_i2.ExceptionHandler<dynamic>? exceptionHandler) =>
-      (super.noSuchMethod(Invocation.method(#onError, [exceptionHandler]),
+  _i2.RestClient onError(_i2.ExceptionHandler<dynamic>? handler) =>
+      (super.noSuchMethod(Invocation.method(#onError, [handler]),
+          returnValue: _FakeRestClient_1()) as _i2.RestClient);
+  @override
+  _i2.RestClient errorInterceptor(_i2.ExceptionInterceptor? interceptor) =>
+      (super.noSuchMethod(Invocation.method(#errorInterceptor, [interceptor]),
           returnValue: _FakeRestClient_1()) as _i2.RestClient);
   @override
   _i2.RestClient stub<T>(_i4.FutureOr<T>? stub) =>

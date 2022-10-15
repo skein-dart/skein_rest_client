@@ -99,7 +99,7 @@ void main() {
     });
 
     test("Set decoder", () {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       final decoder = _MockDecoder();
       client.decode(withDecoder: decoder);
       client.decodeIfNeeded("test");
@@ -107,7 +107,7 @@ void main() {
     });
 
     test("Set encoder", () {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       final encoder = _MockEncoder();
       client.encode(withEncoder: encoder);
       client.encodeIfNeeded("test");
@@ -115,21 +115,21 @@ void main() {
     });
 
     test("Add header", () async {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       client.addHeader(name: "test_header", value: "test_header_value");
       final headers = await client.formHeaders();
       expect(headers, containsPair("test_header", "test_header_value"));
     });
 
     test("Set Authorization header", () async {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       client.authorization(() => BearerAuthorization(token: "custom_test_token"));
       final authorization = await client.formAuthorization();
       expect(authorization?.data, "Bearer custom_test_token");
     });
 
     test("Set exception handler", () {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       final handler = _MockExceptionHandler();
       client.onError(handler);
       final exception = Exception("test_exception");
@@ -139,7 +139,7 @@ void main() {
     });
 
     test("Rethrow exception if no handler specified", () {
-      final client = _StubRestClient(CancelableOperation.fromFuture(Future.value("")));
+      final client = _StubRestClient(() => CancelableOperation.fromFuture(Future.value("")));
       final exception = Exception("test_exception");
       final stackTrace = StackTrace.empty;
       expect(() => client.handleException(exception, stackTrace), throwsA(exception));
@@ -150,7 +150,7 @@ void main() {
     final realData = {"username": "real_user", "password": "real_pass"};
     final fakeData = {"username": "fake_user", "password": "fake_pass"};
     final real = CancelableOperation.fromFuture(Future.value(realData));
-    var client = _StubRestClient(real);
+    var client = _StubRestClient(() => real);
 
     setUpAll(() {
       Rest.config = Config(
@@ -202,9 +202,53 @@ void main() {
 
     test("Cancel get()", () {
       final operation = MockCancelableOperation();
-      final client = _StubRestClient(operation);
+      final client = _StubRestClient(() => operation);
       // when(client.doGet()).thenReturn(expected)
     });
+  });
+  
+  group("RestClient retry failed HTTP calls", () {
+    var isTokenExpired = true;
+    final client = _StubRestClient(() => isTokenExpired
+      ? throw _TokenExpiredException()
+      : CancelableOperation.fromFuture(Future.value("OK"))
+    );
+
+    setUp(() {
+
+    });
+
+    tearDown(() {
+      isTokenExpired = true;
+    });
+
+    test("Retry failed call", () async {
+      client.errorInterceptor((error, stack, {required int attempts}) async {
+        await Future.delayed(Duration(milliseconds: 500));
+        isTokenExpired = false;
+        return true;
+      });
+      expect(await client.get().value, equals("OK"));
+    });
+
+    test("Retry 5 times, last success", () async {
+      client.errorInterceptor((error, stack, {required attempts}) async {
+        if (attempts == 4) {
+          isTokenExpired = false;
+        }
+        return true;
+      });
+      expect(await client.get().value, equals("OK"));
+
+    });
+
+    test("Retry 5 times, no success", () async {
+      client.errorInterceptor((error, stack, {required attempts}) async {
+        return attempts < 5;
+      });
+      expect(() async => await client.get().value, throwsA(isA<_TokenExpiredException>()));
+    });
+
   });
 
 }
@@ -224,32 +268,37 @@ abstract class _ExceptionHandler<T> {
 }
 class _MockExceptionHandler<T> extends Mock implements _ExceptionHandler<T> {}
 
-class _MockRestClient extends MockRestClient with RestClientHelper {}
+class _MockRestClient extends MockRestClient with RestClientHelper {
+
+
+}
 
 class _StubRestClient extends RestClient with RestClientHelper {
 
-  final CancelableOperation operation;
+  final CancelableOperation Function() generator;
 
-  _StubRestClient(this.operation);
+  _StubRestClient(this.generator);
 
   @override
   CancelableOperation<T> doDelete<T>([data]) {
-    return operation as CancelableOperation<T>;
+    return generator() as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doGet<T>([data]) {
-    return operation as CancelableOperation<T>;
+    return generator() as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doPatch<T>([data]) {
-    return operation as CancelableOperation<T>;
+    return generator() as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> doPost<T>([data]) {
-    return operation as CancelableOperation<T>;
+    return generator() as CancelableOperation<T>;
   }
 
 }
+
+class _TokenExpiredException implements Exception {}
