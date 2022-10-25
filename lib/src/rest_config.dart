@@ -23,10 +23,13 @@ class RestConfig {
 
   final ExceptionInterceptor? errorInterceptor;
 
+  final ExceptionHandler? onError;
+
   const RestConfig({
     required this.builder,
     this.api,
     this.errorInterceptor,
+    this.onError,
   });
 
 }

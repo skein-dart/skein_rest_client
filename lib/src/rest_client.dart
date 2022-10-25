@@ -74,6 +74,9 @@ abstract class RestClient {
     return this;
   }
 
+  @protected
+  ExceptionHandler? getErrorHandler() => _exceptionHandler ?? Rest.config.rest.onError;
+
   // MARK: Exception interceptor
 
   ExceptionInterceptor? _exceptionInterceptor;
@@ -154,10 +157,11 @@ mixin RestClientHelper on RestClient {
   }
 
   T handleException<T>(Exception error, StackTrace stackTrace) {
-    if (_exceptionHandler == null) {
+    final handler = getErrorHandler();
+    if (handler == null) {
       throw error;
     }
-    return _exceptionHandler!(error, stackTrace);
+    return handler(error, stackTrace);
   }
 
   @override
