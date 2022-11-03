@@ -279,7 +279,7 @@ abstract class _Encoder<T> {
 class _MockEncoder<T> extends Mock implements _Encoder<T> {}
 
 abstract class _ExceptionHandler<T> {
-  T call(Exception error, StackTrace stack);
+  T call(Object error, StackTrace stack);
 }
 class _MockExceptionHandler<T> extends Mock implements _ExceptionHandler<T> {}
 

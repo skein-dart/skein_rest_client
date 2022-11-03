@@ -10,7 +10,7 @@ part 'rest_client_registry.dart';
 typedef DecoderFunction<T> = FutureOr<T> Function(dynamic value);
 typedef EncoderFunction<T> = FutureOr<dynamic> Function(T value);
 typedef AuthorizationBuilder = FutureOr<Authorization?> Function();
-typedef ExceptionHandler<T> = T Function(Exception e, StackTrace stackTrace);
+typedef ExceptionHandler<T> = FutureOr<T> Function(Object error, StackTrace stackTrace);
 typedef ExceptionInterceptor = Future<bool> Function(Object error, StackTrace stack, {required int attempts});
 
 abstract class RestClient {
@@ -156,40 +156,44 @@ mixin RestClientHelper on RestClient {
     return _decoder != null ? _decoder!(value) : value;
   }
 
-  T handleException<T>(Exception error, StackTrace stackTrace) {
+  FutureOr<T> handleException<T>(Object error, StackTrace stackTrace) {
     final handler = getErrorHandler();
     if (handler == null) {
       throw error;
     }
-    return handler(error, stackTrace);
+    return handler(error, stackTrace) as FutureOr<T>;
   }
 
   @override
   CancelableOperation<T> post<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "POST") : _request(() => doPost(data));
+    var operation = _stub != null ? doStub(_stub, method: "POST") : _request(() => doPost(data));
+    operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation;
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> patch<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "PATCH") : _request(() => doPatch(data));
+    var operation = _stub != null ? doStub(_stub, method: "PATCH") : _request(() => doPatch(data));
+    operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation;
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> get<T>() {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "GET") : _request(() => doGet());
+    var operation = _stub != null ? doStub(_stub, method: "GET") : _request(() => doGet());
+    operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation;
+    return operation as CancelableOperation<T>;
   }
 
   @override
   CancelableOperation<T> delete<T>([dynamic data]) {
-    final CancelableOperation<T> operation = _stub != null ? doStub(_stub, method: "DELETE") : _request(() => doDelete(data));
+    var operation = _stub != null ? doStub(_stub, method: "DELETE") : _request(() => doDelete(data));
+    operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation;
+    return operation as CancelableOperation<T>;
   }
 
   CancelableOperation<T> _request<T>(CancelableOperation<T> Function() generator) {
@@ -249,30 +253,13 @@ mixin RestClientHelper on RestClient {
 
   }
 
-
-  // CancelableOperation<T> _delete<T>([dynamic data]) {
-  //   late CancelableOperation<T> operation;
-  //   return doDelete(data).then((value) => value,
-  //       onError: (error, stack) {
-  //         operation = _delete(data);
-  //         return operation.value;
-  //       },
-  //       onCancel: () {
-  //         operation.cancel()
-  //       });
-  // }
-
 }
 
 extension on CancelableOperation {
 
-  // CancelableOperation<R> retry<R>(Object? error, StackTrace? stack, CancelableOperation<R> Function() generator) {
-  //
-  //   final completer = CancelableCompleter(onCancel: () {
-  //
-  //   })
-  //
-  // }
+  CancelableOperation<R> onError<R>(FutureOr<R> Function(Object, StackTrace)? onError) {
+    return then((value) => value, onError: onError);
+  }
 
   CancelableOperation<R> onEnd<R>(FutureOr<R> Function() listener) {
     return then((_) => listener(),
