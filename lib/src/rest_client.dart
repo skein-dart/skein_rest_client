@@ -166,34 +166,34 @@ mixin RestClientHelper on RestClient {
 
   @override
   CancelableOperation<T> post<T>([dynamic data]) {
-    var operation = _stub != null ? doStub(_stub, method: "POST") : _request(() => doPost(data));
+    var operation = _stub != null ? doStub<T>(_stub, method: "POST") : _request(() => doPost<T>(data));
     operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation as CancelableOperation<T>;
+    return operation;
   }
 
   @override
   CancelableOperation<T> patch<T>([dynamic data]) {
-    var operation = _stub != null ? doStub(_stub, method: "PATCH") : _request(() => doPatch(data));
+    var operation = _stub != null ? doStub<T>(_stub, method: "PATCH") : _request(() => doPatch<T>(data));
     operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation as CancelableOperation<T>;
+    return operation;
   }
 
   @override
   CancelableOperation<T> get<T>() {
-    var operation = _stub != null ? doStub(_stub, method: "GET") : _request(() => doGet());
+    var operation = _stub != null ? doStub<T>(_stub, method: "GET") : _request(() => doGet<T>());
     operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation as CancelableOperation<T>;
+    return operation;
   }
 
   @override
   CancelableOperation<T> delete<T>([dynamic data]) {
-    var operation = _stub != null ? doStub(_stub, method: "DELETE") : _request(() => doDelete(data));
+    var operation = _stub != null ? doStub<T>(_stub, method: "DELETE") : _request(() => doDelete<T>(data));
     operation = operation.onError(handleException);
     operation.onEnd(() => RestClientRegistry.reuse(this));
-    return operation as CancelableOperation<T>;
+    return operation;
   }
 
   CancelableOperation<T> _request<T>(CancelableOperation<T> Function() generator) {
