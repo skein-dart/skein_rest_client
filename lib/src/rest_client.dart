@@ -156,12 +156,16 @@ mixin RestClientHelper on RestClient {
     return _decoder != null ? _decoder!(value) : value;
   }
 
-  FutureOr<T> handleException<T>(Object error, StackTrace stackTrace) {
+  FutureOr<T> handleException<T>(Object error, StackTrace stackTrace) async {
     final handler = getErrorHandler();
     if (handler == null) {
       throw error;
     }
-    return handler(error, stackTrace) as FutureOr<T>;
+    final value = await handler(error, stackTrace);
+    if (value is FutureOr<T>) {
+      return value;
+    }
+    throw error;
   }
 
   @override

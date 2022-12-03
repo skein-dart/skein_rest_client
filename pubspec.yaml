@@ -1,6 +1,6 @@
 name: skein_rest_client
 description: An abstraction layer for REST HTTP API
-version: 0.0.11 
+version: 0.0.12
 homepage: https://github.com/skein-dart/skein_rest_client
 
 environment:
