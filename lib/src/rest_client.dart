@@ -165,7 +165,7 @@ mixin RestClientHelper on RestClient {
     if (value is FutureOr<T>) {
       return value;
     }
-    throw error;
+    Error.throwWithStackTrace(error, stackTrace);
   }
 
   @override
